@@ -1,0 +1,136 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Bee Swarm Simulator Script",
+   LoadingTitle = "Nisulrocks Scripts",
+   LoadingSubtitle = "by Nisulrocks",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Nisulrocks Hub"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+
+
+local MainTab = Window:CreateTab("Main", nil) -- Title, Image
+local MainSection = MainTab:CreateSection("Auto Farming")
+
+Rayfield:Notify({
+   Title = "NisulRocks scripts",
+   Content = "script executed",
+   Duration = 5,
+   Image = nil,
+   Actions = { -- Notification Buttons
+      Ignore = {
+         Name = "Bet!",
+         Callback = function()
+         print("Script usable")
+      end
+   },
+},
+})
+
+
+-- Create a dropdown menu for feild selction 
+local selectedField = nil
+local Dropdown = MainTab:CreateDropdown({
+   Name = "Select Field",
+   Options = {"Bamboo Field", "Blue Flower Field", "Cactus Field", "Clover Field",
+              "Coconut Field", "Dandelion Field", "Mountain Top Field", "Mushroom Field", "Pepper Patch",
+              "Pine Tree Forest", "Pineapple Patch", "Pumpkin Patch", "Rose Field", "Spider Field", "Strawberry Field",
+              "Stump Field", "Sunflower Field"},
+   CurrentOption = {"Nil"},
+   MultipleOptions = false,
+   Flag = "Dropdown1",
+   Callback = function(Option)
+      selectedField = Option[1]
+      print("Selected field: " .. selectedField)
+   end,
+})
+
+local Dropdown = MainTab:CreateDropdown({
+   Name = "Farm Method",
+   Options = {"Walk around","Tokens(coming soon)"},
+   CurrentOption = {"Nil"},
+   MultipleOptions = false,
+   Flag = "Dropdown2",
+   Callback = function(Option)
+      -- The variable (Option) is a table of strings for the current selected options
+   end,
+})
+
+-- Variable to control auto-farming state
+local autoFarmingActive = false
+
+-- Function to get a random position within the field
+local function getRandomPositionInField(field)
+   local size = field.Size
+   local position = field.Position
+   local randomX = position.X + math.random(-size.X/2, size.X/2)
+   local randomZ = position.Z + math.random(-size.Z/2, size.Z/2)
+   return Vector3.new(randomX, position.Y + 5, randomZ)
+end
+
+-- Function to start or stop the auto-farming process
+local function toggleAutoFarm()
+   local flowerZones = workspace:WaitForChild("FlowerZones")
+   local teleportField = flowerZones:FindFirstChild(selectedField)
+   local player = game.Players.LocalPlayer
+   local character = player.Character or player.CharacterAdded:Wait()
+
+   if selectedField and teleportField and character and character:FindFirstChild("HumanoidRootPart") then
+      -- Toggle state
+      autoFarmingActive = not autoFarmingActive
+
+      if autoFarmingActive then
+         print("Starting auto-farm in " .. selectedField)
+         -- Teleport player to the selected field
+         character.HumanoidRootPart.CFrame = CFrame.new(getRandomPositionInField(teleportField))
+         -- Start auto-farming loop
+         while autoFarmingActive do
+            if character and character:FindFirstChild("HumanoidRootPart") then
+               character.HumanoidRootPart.CFrame = CFrame.new(getRandomPositionInField(teleportField))
+               task.wait(5) -- Adjust the wait time as needed
+            else
+               print("Character not found")
+               autoFarmingActive = false
+            end
+         end
+         print("Auto-farm stopped")
+      else
+         print("Auto-farm stopped")
+      end
+   else
+      print("Field or Character not found")
+   end
+end
+
+-- Toggle button for auto-farm
+local Toggle = MainTab:CreateToggle({
+   Name = "Auto Farm",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+      if Value then
+         toggleAutoFarm()
+      else
+         autoFarmingActive = false
+         print("Auto-farm disabled")
+      end
+   end,
+})
