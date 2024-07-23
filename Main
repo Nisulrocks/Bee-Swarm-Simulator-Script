@@ -83,7 +83,7 @@ local function getRandomPositionInField(field)
    local position = field.Position
    local randomX = position.X + math.random(-size.X/2, size.X/2)
    local randomZ = position.Z + math.random(-size.Z/2, size.Z/2)
-   return Vector3.new(randomX, position.Y + 5, randomZ)
+   return Vector3.new(randomX, position.Y, randomZ)
 end
 
 -- Function to start or stop the auto-farming process
@@ -92,23 +92,37 @@ local function toggleAutoFarm()
    local teleportField = flowerZones:FindFirstChild(selectedField)
    local player = game.Players.LocalPlayer
    local character = player.Character or player.CharacterAdded:Wait()
+   local humanoid = character:FindFirstChildOfClass("Humanoid")
+   local pathfindingService = game:GetService("PathfindingService")
 
-   if selectedField and teleportField and character and character:FindFirstChild("HumanoidRootPart") then
+   if selectedField and teleportField and character and humanoid then
       -- Toggle state
       autoFarmingActive = not autoFarmingActive
 
       if autoFarmingActive then
          print("Starting auto-farm in " .. selectedField)
-         -- Teleport player to the selected field
-         character.HumanoidRootPart.CFrame = CFrame.new(getRandomPositionInField(teleportField))
          -- Start auto-farming loop
          while autoFarmingActive do
-            if character and character:FindFirstChild("HumanoidRootPart") then
-               character.HumanoidRootPart.CFrame = CFrame.new(getRandomPositionInField(teleportField))
-               task.wait(5) -- Adjust the wait time as needed
-            else
-               print("Character not found")
-               autoFarmingActive = false
+            local targetPosition = getRandomPositionInField(teleportField)
+            local path = pathfindingService:CreatePath({
+               AgentRadius = humanoid.HipWidth,
+               AgentHeight = humanoid.HipHeight,
+               AgentCanJump = true,
+               AgentJumpHeight = humanoid.JumpHeight,
+               AgentMaxSlope = humanoid.MaxSlope,
+            })
+            path:ComputeAsync(character.PrimaryPart.Position, targetPosition)
+
+            if path.Status == Enum.PathStatus.Complete then
+               path:MoveTo(character)
+               path.Blocked:Connect(function()
+                  path:Stop()
+                  task.wait(1)
+               end)
+               path.Reached:Connect(function()
+                  task.wait(5) -- Adjust the wait time as needed
+               end)
+               humanoid.MoveToFinished:Wait()
             end
          end
          print("Auto-farm stopped")
